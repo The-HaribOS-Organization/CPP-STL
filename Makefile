@@ -18,14 +18,18 @@ LDFLAGS = -T $(LDFILE) -static -Bsymbolic -nostdlib
 all: $(OBJS) build
 
 $(OBJ_DIR)/%.o: src/%.c 
-    @ mkdir -p $(@D)
-    $(CXX) $(CXXFLAGS) $(INCLUDE_HEADERS) -c $< -o $@
+	@ mkdir -p $(@D)
+	$(CXX) $(CXXFLAGS) $(INCLUDE_HEADERS) -c $< -o $@
 
 build:
 	$(LD) $(LDFLAGS) -o bin/parser.elf $(OBJS)
+
+setup:
+	@ mkdir -p obj
+	@ mkdir -p bin
 
 clean:
 	rm -rf $(OBJ_DIR)
 	rm -f bin/parser.elf
 
-.PHONY: all build clean
+.PHONY: all build setup clean
