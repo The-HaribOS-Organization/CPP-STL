@@ -36,6 +36,15 @@ namespace std
     template<class T>
     using add_rvalue_reference_t = add_rvalue_reference<T>::type;
 
+
+    // add_const
+    template<class T>
+    struct add_const { using type = const T; };
+
+    template<class T>
+    using add_const_t = add_const<T>::type;
+
+
     // remove_reference
     template<class T>
     struct remove_reference { using type = T; };
@@ -48,6 +57,7 @@ namespace std
 
     template<class T>
     using remove_reference_t = remove_reference<T>::type;
+
 
     // integral_constant
     template<class T, T v>
@@ -94,12 +104,35 @@ namespace std
     struct is_assignable<T, U, decltype(declval<T>() = declval<U>(), void())> : true_type {};
 
     template<typename T, typename U>
-    using is_assignable_v = is_assignable<T, U>::value;
+    inline constexpr bool is_assignable_v = is_assignable<T, U>::value;
 
 
     // is_copy_assignable
     template<class T>
     struct is_copy_assignable : is_assignable<add_lvalue_reference<T>, add_lvalue_reference<const T>> {};
+
+
+    // is_constructible
+    template<class T, typename = void, class... Args>
+    struct is_constructible : false_type {};
+
+    template<class T, class... Args>
+    struct is_constructible<T, decltype(T{ declval<Args>()... }, void()), Args...> : true_type {};
+
+    template<class T, class... Args>
+    inline constexpr bool is_constructible_t = is_constructible<T, Args...>::type;
+
+
+    // is_copy_contructible
+    template<class T>
+    struct is_copy_contructible : is_constructible<T,
+                                    typename add_lvalue_reference<
+                                        typename add_const<T>::type
+                                    >::type
+                                > {};
+
+    template<class T>
+    inline constexpr bool is_copy_contructible_t = is_copy_contructible<T>::type;
 
 }
 
