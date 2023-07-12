@@ -4,6 +4,20 @@
 
 namespace std
 {
+    // remove_reference struct
+    template<class T>
+    struct remove_reference { using type = T; };
+
+    template<class T>
+    struct remove_reference<T&> { using type = T; };
+
+    template<class T>
+    struct remove_reference<T&&> { using type = T; };
+
+    template<class T>
+    using remove_reference_t = remove_reference<T>::type;
+
+    // integral_constant struct
     template<class T, T v>
     struct integral_constant
     {
@@ -22,6 +36,8 @@ namespace std
     using true_type = bool_constant<true>;
     using false_type = bool_constant<true>;
 
+
+    // is_same
     template<class T, class U>
     struct is_same : std::false_type {};
 
