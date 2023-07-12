@@ -20,12 +20,12 @@ namespace std
 
     // Category filter
     template<class Category>
-    concept CorrectCategory = std::same_as<Category, input_iterator_tag>
-                                    || std::same_as<Category, output_iterator_tag>
-                                    || std::same_as<Category, forward_iterator_tag>
-                                    || std::same_as<Category, bidirectional_iterator_tag>
-                                    || std::same_as<Category, random_access_iterator_tag>
-                                    || std::same_as<Category, contiguous_iterator_tag>;
+    concept CorrectCategory = same_as<Category, input_iterator_tag>
+                                    || same_as<Category, output_iterator_tag>
+                                    || same_as<Category, forward_iterator_tag>
+                                    || same_as<Category, bidirectional_iterator_tag>
+                                    || same_as<Category, random_access_iterator_tag>
+                                    || same_as<Category, contiguous_iterator_tag>;
 
     // Iterator struct
     template<

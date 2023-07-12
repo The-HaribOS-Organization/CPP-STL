@@ -7,7 +7,10 @@
 namespace std
 {
     template<class T>
-    std::remove_reference_t<T>&& move(T&& var) noexcept;
+    remove_reference_t<T>&& move(T&& var) noexcept;
+
+    template<class T>
+    add_rvalue_reference_t<T> declval() noexcept;
 }
 
 
