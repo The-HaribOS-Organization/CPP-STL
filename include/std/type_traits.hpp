@@ -66,7 +66,7 @@ namespace std
         using value_type = T;
         using type = integral_constant<T, v>;
 
-        constexpr operator value_type&() const noexcept;
+        constexpr explicit operator value_type&() const noexcept;
         constexpr value_type operator()() const noexcept;
 
         static constexpr T value{ v };
@@ -76,7 +76,7 @@ namespace std
     using bool_constant = integral_constant<bool, B>;
 
     using true_type = bool_constant<true>;
-    using false_type = bool_constant<true>;
+    using false_type = bool_constant<false>;
 
     template<class T>
     constexpr bool always_false = false;
@@ -92,8 +92,60 @@ namespace std
     template<class T, class U>
     inline constexpr bool is_same_v = is_same<T, U>::value;
 
+
+    // is_lvalue_reference
     template<class T>
-    add_rvalue_reference<T> declval() noexcept;
+    struct is_lvalue_reference : false_type {};
+
+    template<class T>
+    struct is_lvalue_reference<T&> : true_type {};
+
+    template<class T>
+    inline constexpr bool is_lvalue_reference_v = is_lvalue_reference<T>::value;
+
+
+    // is_rvalue_reference
+    template<class T>
+    struct is_rvalue_reference : false_type {};
+
+    template<class T>
+    struct is_rvalue_reference<T&&> : true_type {};
+
+    template<class T>
+    inline constexpr bool is_rvalue_reference_v = is_rvalue_reference<T>::value;
+
+
+    // is_reference
+    template<class T>
+    inline constexpr bool is_reference = is_lvalue_reference_v<T> || is_rvalue_reference_v<T>;
+
+
+    // is_pointer
+    template<class T>
+    struct is_pointer : false_type {};
+
+    template<class T>
+    struct is_pointer<T*> : true_type {};
+
+    template<class T>
+    struct is_pointer<T* const> : true_type {};
+
+    template<class T>
+    struct is_pointer<T* volatile> : true_type {};
+
+    template<class T>
+    struct is_pointer<T* const volatile> : true_type {};
+
+    template<class T>
+    inline constexpr bool is_pointer_v = is_pointer<T>::value;
+
+
+//    // is_convertible
+//    template<class From, class To>
+//    struct is_convertible : bool_constant< requires {
+//        To { declval<From>() },
+//        is_same_v<From, void> && is_same_v<To, void>;
+//    } > {};
 
 
     // is_assignable
@@ -107,33 +159,116 @@ namespace std
     inline constexpr bool is_assignable_v = is_assignable<T, U>::value;
 
 
+    // is_trivially_assignable
+    template<class T, class U, typename = void>
+    struct is_trivially_assignable : false_type {};
+
+    template<class T, class U>
+    struct is_trivially_assignable<T, U, decltype(T(declval<U>()), void())> : true_type {};
+
+    template<typename T, typename U>
+    inline constexpr bool is_trivially_assignable_v = is_trivially_assignable<T, U>::value;
+
+
+    // is_nothrow_assignable
+    template<class T, class U, typename = void>
+    struct is_nothrow_assignable : false_type {};
+
+    template<class T, class U>
+    struct is_nothrow_assignable<T, U, decltype(noexcept(declval<T>() = declval<U>()) ? declval<T>() = declval<U>() : void(), void())> : true_type {};
+
+    template<typename T, typename U>
+    inline constexpr bool is_nothrow_assignable_v = is_nothrow_assignable<T, U>::value;
+
+
     // is_copy_assignable
     template<class T>
     struct is_copy_assignable : is_assignable<add_lvalue_reference<T>, add_lvalue_reference<const T>> {};
 
 
-    // is_constructible
-    template<class T, typename = void, class... Args>
-    struct is_constructible : false_type {};
+    // is_trivially_copy_assignable
+    template<class T>
+    struct is_trivially_copy_assignable : is_trivially_assignable<add_lvalue_reference<T>, add_lvalue_reference<const T>> {};
 
+
+    // is_nothrow_copy_assignable
+    template<class T>
+    struct is_nothrow_copy_assignable : is_nothrow_assignable<add_lvalue_reference<T>, add_lvalue_reference<const T>> {};
+
+
+    // is_constructible*
     template<class T, class... Args>
-    struct is_constructible<T, decltype(T{ declval<Args>()... }, void()), Args...> : true_type {};
+    struct is_constructible : bool_constant< requires{ T{ declval<Args>()... }; }> {};
 
     template<class T, class... Args>
     inline constexpr bool is_constructible_t = is_constructible<T, Args...>::type;
 
 
-    // is_copy_contructible
+    // is_nothrow_constructible
+    template<class T, typename = void, class... Args>
+    struct is_nothrow_constructible : false_type {};
+
+    template<class T, class... Args>
+    struct is_nothrow_constructible<T, decltype(noexcept(T{ declval<Args>()... }) ? T{ declval<Args>()... } : void(), void()), Args...> : true_type {};
+
+    template<class T, class... Args>
+    inline constexpr bool is_nothrow_constructible_v = is_nothrow_constructible<T, Args...>::value;
+
+
+    // is_move_constructible
     template<class T>
-    struct is_copy_contructible : is_constructible<T,
-                                    typename add_lvalue_reference<
-                                        typename add_const<T>::type
-                                    >::type
-                                > {};
+    struct is_move_constructible : is_constructible<T, add_rvalue_reference_t<T>> {};
 
     template<class T>
-    inline constexpr bool is_copy_contructible_t = is_copy_contructible<T>::type;
+    inline constexpr bool is_move_constructible_v = is_move_constructible<T>::value;
 
+
+    // is_nothrow_move_constructible
+    template<class T>
+    struct is_nothrow_move_constructible : is_constructible<T, add_rvalue_reference_t<T>> {};
+
+    template<class T>
+    inline constexpr bool is_nothrow_move_constructible_v = is_nothrow_move_constructible<T>::value;
+
+
+    // is_copy_constructible
+    template<class T>
+    struct is_copy_constructible : is_constructible<T,
+        typename add_lvalue_reference<
+            typename add_const<T>::type
+        >::type
+    > {};
+
+    template<class T>
+    inline constexpr bool is_copy_constructible_t = is_copy_constructible<T>::type;
+
+
+    // is_nothrow_copy_constructible
+    template<class T>
+    struct is_nothrow_copy_constructible : is_nothrow_constructible<T,
+            typename add_lvalue_reference<
+                    typename add_const<T>::type
+            >::type
+    > {};
+
+    template<class T>
+    inline constexpr bool is_nothrow_copy_constructible_v = is_nothrow_copy_constructible<T>::value;
+
+
+    // is_default_constructible
+    template<class T>
+    struct is_default_constructible : is_constructible<T> {};
+
+    template<class T>
+    inline constexpr bool is_default_constructible_v = is_default_constructible<T>::value;
+
+
+    // is_nothrow_default_constructible
+    template<class T>
+    struct is_nothrow_default_constructible : is_nothrow_constructible<T> {};
+
+    template<class T>
+    inline constexpr bool is_nothrow_default_constructible_v = is_nothrow_default_constructible<T>::value;
 }
 
 
