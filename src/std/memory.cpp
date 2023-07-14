@@ -33,6 +33,7 @@ namespace std
 
 
     // unique_ptr
+    // Functions
     template<class Deleter>
     constexpr void filter()
     {
@@ -40,6 +41,20 @@ namespace std
         static_assert(!is_pointer_v<Deleter>, "Deleter type cannot be a pointer");
     }
 
+    template<class Deleter>
+    constexpr void assert_nothrow_copy_constructible() noexcept
+    {
+        static_assert(is_nothrow_copy_constructible_v<Deleter>, "The deleter copy constructor must exist and be marked as noexcept.");
+    }
+
+
+    template<class Deleter>
+    constexpr void assert_nothrow_move_constructible() noexcept
+    {
+        static_assert(is_nothrow_move_constructible_v<Deleter>, "The deleter move constructor must exist and be marked as noexcept.");
+    }
+
+    // Constructors implementations
     template<class T, class Deleter>
     constexpr unique_ptr<T, Deleter>::unique_ptr()
     {
@@ -60,19 +75,6 @@ namespace std
         filter<Deleter>();
         m_element = p;
         m_deleter = {};
-    }
-
-    template<class Deleter>
-    constexpr void assert_nothrow_copy_constructible() noexcept
-    {
-        static_assert(is_nothrow_copy_constructible_v<Deleter>, "The deleter copy constructor must exist and be marked as noexcept.");
-    }
-
-
-    template<class Deleter>
-    constexpr void assert_nothrow_move_constructible() noexcept
-    {
-        static_assert(is_nothrow_move_constructible_v<Deleter>, "The deleter move constructor must exist and be marked as noexcept.");
     }
 
     template<class T, class Deleter>
@@ -154,25 +156,86 @@ namespace std
         }
     }
 
-    template<class T, class Deleter>
-    unique_ptr<T, Deleter> &unique_ptr<T, Deleter>::operator=(unique_ptr &&r) noexcept {
-
-        return *this;
-    }
-
+    // Destructor
     template<class T, class Deleter>
     unique_ptr<T, Deleter>::~unique_ptr()
     {
-        if (get() != nullptr)
+        if (get())
         {
             static_assert(noexcept(get_deleter()(get())), "Deleter must not throw an exception.");
         }
     }
 
     template<class T, class Deleter>
-    unique_ptr<T, Deleter>::pointer unique_ptr<T, Deleter>::get() const noexcept
+    using pointer = unique_ptr<T, Deleter>::pointer;
+
+    // Operators
+    template<class T, class Deleter>
+    template<class U, class E>
+    unique_ptr<T, Deleter>& unique_ptr<T, Deleter>::transfer_ownership_from(unique_ptr<U, E>&& r)
+    {
+        reset(r.release());
+
+        if (is_reference<Deleter>)
+            static_assert(is_nothrow_copy_assignable_v<remove_reference_t<Deleter>>, "Deleter must be copy assignable and marked as noexcept.");
+        else
+            static_assert(is_nothrow_move_assignable_v<Deleter>, "Deleter must be move assignable.");
+
+        get_deleter() = forward<Deleter>(r.get_deleter());
+        return *this;
+    }
+
+    template<class T, class Deleter>
+    unique_ptr<T, Deleter>& unique_ptr<T, Deleter>::operator=(unique_ptr&& r) noexcept
+    {
+        transfer_ownership_from<T, Deleter>(r);
+        return *this;
+    }
+
+    template<class T, class Deleter>
+    template<class U, class E>
+    unique_ptr<T, Deleter>& unique_ptr<T, Deleter>::operator=(unique_ptr<U,E>&& r) noexcept
+    {
+        static_assert(!is_same_v<U, U[]>, "The provided element cannot be an array.");
+        static_assert(is_convertible_v<typename unique_ptr<U,E>::pointer, pointer>, "The provided class pointer cannot be converted into this class pointer.");
+        static_assert(is_assignable_v<Deleter&, E&&>, "The provided Deleter cannot be move assigned to this class Deleter.");
+
+        transfer_ownership_from(r);
+        return *this;
+    }
+
+    template<class T, class Deleter>
+    unique_ptr<T, Deleter> &unique_ptr<T, Deleter>::operator=(nullptr_t) noexcept {
+        reset();
+        return *this;
+    }
+
+    // Member functions
+    template<class T, class Deleter>
+    pointer<T, Deleter> unique_ptr<T, Deleter>::get() const noexcept
     {
         return m_element;
+    }
+
+    template<class T, class Deleter>
+    pointer<T, Deleter> unique_ptr<T, Deleter>::release() noexcept
+    {
+        if (m_element)
+        {
+            auto old_ptr = m_element;
+            m_element = nullptr;
+            return old_ptr;
+        }
+
+        return nullptr;
+    }
+
+    template<class T, class Deleter>
+    void unique_ptr<T, Deleter>::reset(pointer ptr) noexcept
+    {
+        auto old_ptr = m_element;
+        m_element = ptr;
+        if (old_ptr) get_deleter()(old_ptr);
     }
 
     template<class T, class Deleter>

@@ -1,5 +1,5 @@
-#ifndef CLIPARSER_MEMORY_HPP
-#define CLIPARSER_MEMORY_HPP
+#ifndef STL_MEMORY_HPP
+#define STL_MEMORY_HPP
 
 
 #include "cstddef.hpp"
@@ -65,17 +65,27 @@ namespace std
         template<class U, class E>
         unique_ptr(unique_ptr<U, E>&& u) noexcept;
 
-        unique_ptr& operator=(unique_ptr&& r) noexcept;
-
         // Destructor
         ~unique_ptr();
 
+        // Operators
+        unique_ptr& operator=(unique_ptr&& r) noexcept;
+
+        template<class U, class E>
+        unique_ptr& operator=(unique_ptr<U,E>&& r) noexcept;
+
+        unique_ptr& operator=(nullptr_t) noexcept;
+
         // Member functions
         pointer get() const noexcept;
-
+        pointer release() noexcept;
+        void reset(pointer ptr = pointer()) noexcept;
         Deleter& get_deleter() noexcept;
         const Deleter& get_deleter() const noexcept;
     private:
+        template<class U, class E>
+        unique_ptr<T, Deleter>& transfer_ownership_from(unique_ptr<U, E>&& r);
+
         element_type* m_element;
         deleter_type m_deleter;
     };
@@ -83,4 +93,4 @@ namespace std
 }
 
 
-#endif //CLIPARSER_MEMORY_HPP
+#endif //STL_MEMORY_HPP
