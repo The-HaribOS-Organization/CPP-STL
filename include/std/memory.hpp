@@ -35,10 +35,12 @@ namespace std
     class unique_ptr
     {
     public:
+        // Member types
         using pointer = decltype(remove_reference<Deleter>::type::pointer(), T::pointer());
         using element_type = T;
         using deleter_type = Deleter;
 
+        // Constructors
         constexpr unique_ptr();
         constexpr explicit unique_ptr(nullptr_t ptr) noexcept;
         explicit unique_ptr(pointer p) noexcept;
@@ -62,10 +64,22 @@ namespace std
 
         template<class U, class E>
         unique_ptr(unique_ptr<U, E>&& u) noexcept;
+
+        unique_ptr& operator=(unique_ptr&& r) noexcept;
+
+        // Destructor
+        ~unique_ptr();
+
+        // Member functions
+        pointer get() const noexcept;
+
+        Deleter& get_deleter() noexcept;
+        const Deleter& get_deleter() const noexcept;
     private:
         element_type* m_element;
         deleter_type m_deleter;
     };
+
 }
 
 
