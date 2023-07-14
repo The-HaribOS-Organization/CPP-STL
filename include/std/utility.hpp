@@ -11,6 +11,12 @@ namespace std
 
     template<class T>
     add_rvalue_reference_t<T> declval() noexcept;
+
+    template<class T>
+    constexpr T&& forward(remove_reference_t<T>& t) noexcept;
+
+    template<class T>
+    constexpr T&& forward(remove_reference_t<T>&& t) noexcept;
 }
 
 

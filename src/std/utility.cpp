@@ -13,4 +13,16 @@ namespace std
     {
         static_assert(stdimpl::always_false<T>, "declval not allowed in an evaluated context");
     }
+
+    template<class T>
+    constexpr T&& forward(remove_reference_t<T>& t) noexcept
+    {
+        return static_cast<T&&>(t);
+    }
+
+    template<class T>
+    constexpr T&& forward(remove_reference_t<T>&& t) noexcept
+    {
+        return static_cast<T&&>(t);
+    }
 }
