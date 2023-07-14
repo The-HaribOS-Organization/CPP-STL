@@ -140,12 +140,31 @@ namespace std
     inline constexpr bool is_pointer_v = is_pointer<T>::value;
 
 
-//    // is_convertible
-//    template<class From, class To>
-//    struct is_convertible : bool_constant< requires {
-//        To { declval<From>() },
-//        is_same_v<From, void> && is_same_v<To, void>;
-//    } > {};
+    // convertible_test
+    template<class From, class To>
+    constexpr To convertible_test() {
+        return declval<From>();
+    }
+
+
+    // is_convertible
+    template<class From, class To>
+    struct is_convertible : bool_constant< requires {
+        convertible_test<From, To>();
+    } || is_same_v<From, void> && is_same_v<To, void>> {};
+
+    template<class From, class To>
+    inline constexpr bool is_convertible_v = is_convertible<From, To>::value;
+
+
+    // is_nothrow_convertible
+    template<class From, class To>
+    struct is_nothrow_convertible : bool_constant< requires {
+        noexcept(convertible_test<From, To>());
+    } || is_same_v<From, void> && is_same_v<To, void>> {};
+
+    template<class From, class To>
+    inline constexpr bool is_nothrow_convertible_v = is_nothrow_convertible<From, To>::value;
 
 
     // is_assignable
