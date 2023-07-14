@@ -1,5 +1,5 @@
-#ifndef CLIPARSER_TYPE_TRAITS_HPP
-#define CLIPARSER_TYPE_TRAITS_HPP
+#ifndef STL_TYPE_TRAITS_HPP
+#define STL_TYPE_TRAITS_HPP
 
 
 namespace std
@@ -204,18 +204,51 @@ namespace std
     template<class T>
     struct is_copy_assignable : is_assignable<add_lvalue_reference<T>, add_lvalue_reference<const T>> {};
 
+    template<class T>
+    inline constexpr bool is_copy_assignable_v = is_copy_assignable<T>::value;
+
 
     // is_trivially_copy_assignable
     template<class T>
     struct is_trivially_copy_assignable : is_trivially_assignable<add_lvalue_reference<T>, add_lvalue_reference<const T>> {};
+
+    template<class T>
+    inline constexpr bool is_trivially_copy_assignable_v = is_trivially_copy_assignable<T>::value;
 
 
     // is_nothrow_copy_assignable
     template<class T>
     struct is_nothrow_copy_assignable : is_nothrow_assignable<add_lvalue_reference<T>, add_lvalue_reference<const T>> {};
 
+    template<class T>
+    inline constexpr bool is_nothrow_copy_assignable_v = is_nothrow_copy_assignable<T>::value;
 
-    // is_constructible*
+
+    // is_move_assignable
+    template<class T>
+    struct is_move_assignable : is_assignable<add_lvalue_reference_t<T>, add_rvalue_reference_t<T>> {};
+
+    template<class T>
+    inline constexpr bool is_move_assignable_v = is_move_assignable<T>::value;
+
+
+    // is_trivially_move_assignable
+    template<class T>
+    struct is_trivially_move_assignable : is_trivially_assignable<add_lvalue_reference_t<T>, add_rvalue_reference_t<T>> {};
+
+    template<class T>
+    inline constexpr bool is_trivially_move_assignable_v = is_trivially_move_assignable<T>::value;
+
+
+    // is_nothrow_move_assignable
+    template<class T>
+    struct is_nothrow_move_assignable : is_nothrow_assignable<add_lvalue_reference_t<T>, add_rvalue_reference_t<T>> {};
+
+    template<class T>
+    inline constexpr bool is_nothrow_move_assignable_v = is_nothrow_move_assignable<T>::value;
+
+
+    // is_constructible
     template<class T, class... Args>
     struct is_constructible : bool_constant< requires{ T{ declval<Args>()... }; }> {};
 
@@ -291,4 +324,4 @@ namespace std
 }
 
 
-#endif //CLIPARSER_TYPE_TRAITS_HPP
+#endif //STL_TYPE_TRAITS_HPP
