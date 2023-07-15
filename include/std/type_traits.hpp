@@ -2,6 +2,8 @@
 #define STL_TYPE_TRAITS_HPP
 
 
+#include "cstddef.hpp"
+
 namespace std
 {
     // add_(l/r)value_reference
@@ -140,7 +142,24 @@ namespace std
     inline constexpr bool is_pointer_v = is_pointer<T>::value;
 
 
+    // is_array
+    template<class T>
+    struct is_array : false_type {};
+
+    template<class T>
+    struct is_array<T[]> : true_type {};
+
+    template<class T, size_t N>
+    struct is_array<T[N]> : true_type {};
+
+    template<class T>
+    inline constexpr bool is_array_v = is_array<T>::value;
+
+
     // convertible_test
+    template<class T>
+    add_rvalue_reference_t<T> declval() noexcept;
+
     template<class From, class To>
     constexpr To convertible_test() {
         return declval<From>();
