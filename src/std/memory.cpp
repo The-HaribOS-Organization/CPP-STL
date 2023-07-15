@@ -1,4 +1,5 @@
 #include "memory.hpp"
+#include "functional.hpp"
 
 
 namespace std
@@ -133,7 +134,7 @@ namespace std
     unique_ptr<T, Deleter>::unique_ptr(unique_ptr<U, E>&& u) noexcept
     {
         static_assert(is_convertible_v<typename unique_ptr<U, E>::pointer, pointer>, "daz");
-        static_assert(!is_same_v<T, T[]>, "Cannot transfer the provided value to an array.");
+        static_assert(!is_array_v<T>, "Cannot transfer the provided value to an array.");
         static_assert
         (
                 is_reference<Deleter> && is_same_v<E, Deleter> ||
@@ -166,13 +167,10 @@ namespace std
         }
     }
 
-    template<class T, class Deleter>
-    using pointer = unique_ptr<T, Deleter>::pointer;
-
     // Operators
     template<class T, class Deleter>
     template<class U, class E>
-    unique_ptr<T, Deleter>& unique_ptr<T, Deleter>::transfer_ownership_from(unique_ptr<U, E>&& r)
+    void unique_ptr<T, Deleter>::transfer_ownership_from(unique_ptr<U, E>&& r)
     {
         reset(r.release());
 
@@ -182,7 +180,6 @@ namespace std
             static_assert(is_nothrow_move_assignable_v<Deleter>, "Deleter must be move assignable.");
 
         get_deleter() = forward<Deleter>(r.get_deleter());
-        return *this;
     }
 
     template<class T, class Deleter>
@@ -196,7 +193,7 @@ namespace std
     template<class U, class E>
     unique_ptr<T, Deleter>& unique_ptr<T, Deleter>::operator=(unique_ptr<U,E>&& r) noexcept
     {
-        static_assert(!is_same_v<U, U[]>, "The provided element cannot be an array.");
+        static_assert(!is_array_v<U>, "The provided element cannot be an array.");
         static_assert(is_convertible_v<typename unique_ptr<U,E>::pointer, pointer>, "The provided class pointer cannot be converted into this class pointer.");
         static_assert(is_assignable_v<Deleter&, E&&>, "The provided Deleter cannot be move assigned to this class Deleter.");
 
@@ -205,20 +202,33 @@ namespace std
     }
 
     template<class T, class Deleter>
-    unique_ptr<T, Deleter> &unique_ptr<T, Deleter>::operator=(nullptr_t) noexcept {
+    unique_ptr<T, Deleter> &unique_ptr<T, Deleter>::operator=(nullptr_t) noexcept
+    {
         reset();
         return *this;
     }
 
-    // Member functions
     template<class T, class Deleter>
-    pointer<T, Deleter> unique_ptr<T, Deleter>::get() const noexcept
+    unique_ptr<T, Deleter>::operator bool() const noexcept
     {
-        return m_element;
+        return get();
     }
 
     template<class T, class Deleter>
-    pointer<T, Deleter> unique_ptr<T, Deleter>::release() noexcept
+    add_lvalue_reference_t<T> unique_ptr<T, Deleter>::operator*() const noexcept(noexcept(*declval<pointer>()))
+    {
+        return *get();
+    }
+
+    template<class T, class Deleter>
+    unique_ptr<T, Deleter>::pointer unique_ptr<T, Deleter>::operator->() const noexcept
+    {
+        return get();
+    }
+
+    // Member functions
+    template<class T, class Deleter>
+    unique_ptr<T, Deleter>::pointer unique_ptr<T, Deleter>::release() noexcept
     {
         if (m_element)
         {
@@ -239,6 +249,20 @@ namespace std
     }
 
     template<class T, class Deleter>
+    void unique_ptr<T, Deleter>::swap(unique_ptr &other) noexcept
+    {
+        auto old_ptr = *this;
+        *this = other;
+        other = old_ptr;
+    }
+
+    template<class T, class Deleter>
+    unique_ptr<T, Deleter>::pointer unique_ptr<T, Deleter>::get() const noexcept
+    {
+        return m_element;
+    }
+
+    template<class T, class Deleter>
     Deleter &unique_ptr<T, Deleter>::get_deleter() noexcept
     {
         return &m_deleter;
@@ -248,6 +272,140 @@ namespace std
     const Deleter &unique_ptr<T, Deleter>::get_deleter() const noexcept
     {
         return &m_deleter;
+    }
+
+    /// Extern functions
+    template<class T, class... Args>
+    unique_ptr<T> make_unique(Args&&... args)
+    {
+        static_assert(!is_array_v<T>);
+        return unique_ptr<T>(new T(forward<Args>(args)...));
+    }
+
+    template<class T>
+    unique_ptr<T> make_unique_for_overwrite()
+    {
+        return unique_ptr<T>(new T);
+    }
+
+    template<class T, class D>
+    void swap(unique_ptr<T, D>& lhs, unique_ptr<T, D>& rhs) noexcept
+    {
+        static_cast(is_swappable_v<D>, "The Deleter must be swappable.");
+        lhs.swap(rhs);
+    }
+
+
+    /// Extern operators
+    //  Comparison between unique_ptrs
+    template<class T1, class D1, class T2, class D2>
+    bool operator==(const unique_ptr<T1, D1>& x, const unique_ptr<T2, D2>& y)
+    {
+        return x.get() == y.get();
+    }
+
+    template<class T1, class D1, class T2, class D2>
+    bool operator!=(const unique_ptr<T1, D1>& x, const unique_ptr<T2, D2>& y)
+    {
+        return !(x == y);
+    }
+
+    template<class T1, class D1, class T2, class D2>
+    bool operator<(const unique_ptr<T1, D1>& x, const unique_ptr<T2, D2>& y)
+    {
+        // TODO: Implement that operator.
+        // less<common_type<unique_ptr<T1, D1>::pointer, unique_ptr<T2, D2>::pointer>::type>()(x.get(), y.get())
+    }
+
+    template<class T1, class D1, class T2, class D2>
+    bool operator<=(const unique_ptr<T1, D1>& x, const unique_ptr<T2, D2>& y)
+    {
+        return !(y < x);
+    }
+
+    template<class T1, class D1, class T2, class D2>
+    bool operator>(const unique_ptr<T1, D1>& x, const unique_ptr<T2, D2>& y)
+    {
+        return y < x;
+    }
+
+    template<class T1, class D1, class T2, class D2>
+    bool operator>=(const unique_ptr<T1, D1>& x, const unique_ptr<T2, D2>& y)
+    {
+        return !(x < y);
+    }
+
+    //  Comparison between unique_ptr and nullptr
+    template<class T, class D>
+    bool operator==(const unique_ptr<T, D>& x, nullptr_t) noexcept
+    {
+        return !x;
+    }
+
+    template<class T, class D>
+    bool operator==(nullptr_t, const unique_ptr<T, D>& x) noexcept
+    {
+        return !x;
+    }
+
+    template<class T, class D>
+    bool operator!=(const unique_ptr<T, D>& x, nullptr_t) noexcept
+    {
+        return (bool)x;
+    }
+
+    template<class T, class D>
+    bool operator!=(nullptr_t, const unique_ptr<T, D>& x) noexcept
+    {
+        return (bool)x;
+    }
+
+    template<class T, class D>
+    bool operator<(const unique_ptr<T, D>& x, nullptr_t)
+    {
+        return less<typename unique_ptr<T, D>::pointer>()(x.get(), nullptr);
+    }
+
+    template<class T, class D>
+    bool operator<(nullptr_t, const unique_ptr<T, D>& y)
+    {
+        return less<typename unique_ptr<T, D>::pointer>()(nullptr, y.get());
+    }
+
+    template<class T, class D>
+    bool operator<=(const unique_ptr<T, D>& x, nullptr_t)
+    {
+        return !(nullptr < x);
+    }
+
+    template<class T, class D>
+    bool operator<=(nullptr_t, const unique_ptr<T, D>& y)
+    {
+        return !(y < nullptr);
+    }
+
+    template<class T, class D>
+    bool operator>(const unique_ptr<T, D>& x, nullptr_t)
+    {
+        return nullptr < x;
+    }
+
+    template<class T, class D>
+    bool operator>(nullptr_t, const unique_ptr<T, D>& y)
+    {
+        return y < nullptr;
+    }
+
+    template<class T, class D>
+    bool operator>=(const unique_ptr<T, D>& x, nullptr_t)
+    {
+        return !(x < nullptr);
+    }
+
+    template<class T, class D>
+    bool operator>=(nullptr_t, const unique_ptr<T, D>& y)
+    {
+        return !(nullptr < y);
     }
 
 }
