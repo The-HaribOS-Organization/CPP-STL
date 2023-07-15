@@ -1,5 +1,5 @@
-#ifndef CPLIPARSER_UTILITY_HPP
-#define CPLIPARSER_UTILITY_HPP
+#ifndef STL_UTILITY_HPP
+#define STL_UTILITY_HPP
 
 
 #include "type_traits.hpp"
@@ -17,7 +17,10 @@ namespace std
 
     template<class T>
     constexpr T&& forward(remove_reference_t<T>&& t) noexcept;
+
+    template<class T>
+    constexpr void swap(T& a, T& b) noexcept(is_nothrow_move_constructible_v<T> && is_nothrow_move_assignable_v<T>);
 }
 
 
-#endif //CPLIPARSER_UTILITY_HPP
+#endif //STL_UTILITY_HPP

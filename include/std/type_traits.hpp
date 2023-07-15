@@ -61,6 +61,17 @@ namespace std
     using remove_reference_t = remove_reference<T>::type;
 
 
+    // type_identity
+    template<class T>
+    struct type_identity
+    {
+        using type = T;
+    };
+
+    template<class T>
+    using type_identity_t = type_identity<T>::type;
+
+
     // integral_constant
     template<class T, T v>
     struct integral_constant
@@ -340,6 +351,68 @@ namespace std
 
     template<class T>
     inline constexpr bool is_nothrow_default_constructible_v = is_nothrow_default_constructible<T>::value;
+
+
+    // is_swappable_with
+    template<class T>
+    constexpr void swap(T& a, T& b) noexcept(is_nothrow_move_constructible_v<T> && is_nothrow_move_assignable_v<T>);
+
+    template<class T, class U>
+    constexpr void test_swap() noexcept
+    {
+        using std::swap;
+        swap(declval<T>(), declval<U>());
+        swap(declval<U>(), declval<T>());
+    }
+
+    template<class T, class U>
+    struct is_swappable_with : bool_constant< requires {
+        test_swap<T, U>();
+        test_swap<U, T>();
+    } > {};
+
+    template<class T, class U>
+    inline constexpr bool is_swappable_with_v = is_swappable_with<T, U>::value;
+
+
+    // is_nothrow_swappable_with
+    template<class T, class U>
+    constexpr bool test_nothrow_swap() noexcept
+    {
+        using std::swap;
+        return noexcept(swap(declval<T>(), declval<U>())) && noexcept(swap(declval<U>(), declval<T>()));
+    }
+
+    template<class T, class U>
+    struct is_nothrow_swappable_with : bool_constant< requires {
+        test_nothrow_swap<T, U>() && test_nothrow_swap<U, T>();
+    } > {};
+
+    template<class T, class U>
+    inline constexpr bool is_nothrow_swappable_with_v = is_nothrow_swappable_with<T, U>::value;
+
+
+    // is_swappable
+    template<class T>
+    concept Referenceable = requires
+    {
+        !is_same_v<T, void>;
+        is_same_v<T, type_identity_t<T>>;
+    };
+
+    template<Referenceable T>
+    struct is_swappable : type_identity<is_swappable_with<T&, T&>> {};
+
+    template<Referenceable T>
+    inline constexpr bool is_swappable_v = is_swappable<T>::type::value;
+
+
+    // is_nothrow_swappable
+    template<Referenceable T>
+    struct is_nothrow_swappable : type_identity<is_nothrow_swappable_with<T&, T&>> {};
+
+    template<Referenceable T>
+    inline constexpr bool is_nothrow_swappable_v = is_nothrow_swappable<T>::type::value;
 }
 
 
