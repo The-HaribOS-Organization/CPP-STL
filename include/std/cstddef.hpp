@@ -5,6 +5,7 @@
 namespace std
 {
     using nullptr_t = decltype(nullptr);
+    using size_t = unsigned long long;
 }
 
 
