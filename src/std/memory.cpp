@@ -291,7 +291,7 @@ namespace std
     template<class T, class D>
     void swap(unique_ptr<T, D>& lhs, unique_ptr<T, D>& rhs) noexcept
     {
-        static_cast(is_swappable_v<D>, "The Deleter must be swappable.");
+        static_assert(is_swappable_v<D>, "The Deleter must be swappable.");
         lhs.swap(rhs);
     }
 
