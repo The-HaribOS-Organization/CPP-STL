@@ -3,3 +3,5 @@
 __Langage__ : C++\
 __Version__ : C++20\
 __Compilateur__ : CLang
+
+This repository is mainly maintained by Tartur.
